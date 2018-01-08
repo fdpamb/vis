@@ -5,7 +5,7 @@
  * A dynamic, browser-based visualization library.
  *
  * @version 4.21.0-SNAPSHOT
- * @date    2018-01-05
+ * @date    2018-01-08
  *
  * @license
  * Copyright (C) 2011-2017 Almende B.V, http://almende.com
@@ -14853,53 +14853,76 @@ var Edge = function () {
     key: 'drawLabel',
     value: function drawLabel(ctx, viaNode) {
       if (this.options.label !== undefined) {
-        // set style
-        var node1 = this.from;
-        var node2 = this.to;
-
-        if (this.labelModule.differentState(this.selected, this.hover)) {
-          this.labelModule.getTextSize(ctx, this.selected, this.hover);
-        }
-
-        if (node1.id != node2.id) {
-          this.labelModule.pointToSelf = false;
-          var point = this.edgeType.getPoint(0.5, viaNode);
-          ctx.save();
-
-          var rotationPoint = this._getRotation(ctx);
-          if (rotationPoint.angle != 0) {
-            ctx.translate(rotationPoint.x, rotationPoint.y);
-            ctx.rotate(rotationPoint.angle);
-          }
-
-          // draw the label
-          this.labelModule.draw(ctx, point.x, point.y, this.selected, this.hover);
-
-          /*
-                  // Useful debug code: draw a border around the label
-                  // This should **not** be enabled in production!
-                  var size = this.labelModule.getSize();; // ;; intentional so lint catches it
-                  ctx.strokeStyle = "#ff0000";
-                  ctx.strokeRect(size.left, size.top, size.width, size.height);
-                  // End  debug code
-          */
-
-          ctx.restore();
+        this._drawLabel(0.5, ctx, viaNode);
+      } else {
+        // Ignore the orientations.
+        this.labelModule.pointToSelf = true;
+        var x, y;
+        var radius = this.options.selfReferenceSize;
+        if (node1.shape.width > node1.shape.height) {
+          x = node1.x + node1.shape.width * 0.5;
+          y = node1.y - radius;
         } else {
-          // Ignore the orientations.
-          this.labelModule.pointToSelf = true;
-          var x, y;
-          var radius = this.options.selfReferenceSize;
-          if (node1.shape.width > node1.shape.height) {
-            x = node1.x + node1.shape.width * 0.5;
-            y = node1.y - radius;
-          } else {
-            x = node1.x + radius;
-            y = node1.y - node1.shape.height * 0.5;
-          }
-          point = this._pointOnCircle(x, y, radius, 0.125);
-          this.labelModule.draw(ctx, point.x, point.y, this.selected, this.hover);
+          x = node1.x + radius;
+          y = node1.y - node1.shape.height * 0.5;
         }
+        point = this._pointOnCircle(x, y, radius, 0.125);
+        this.labelModule.draw(ctx, point.x, point.y, this.selected, this.hover);
+      }
+
+      if (this.options.labelFrom !== undefined) {
+        var saved = this.options.label;
+        this.options.label = this.options.labelFrom;
+        this.updateLabelModule();
+        this._drawLabel(0.2, ctx, viaNode);
+        this.options.label = saved;
+        this.updateLabelModule();
+      }
+
+      if (this.options.labelTo !== undefined) {
+        var saved = this.options.label;
+        this.options.label = this.options.labelTo;
+        this.updateLabelModule();
+        this._drawLabel(0.8, ctx, viaNode);
+        this.options.label = saved;
+        this.updateLabelModule();
+      }
+    }
+  }, {
+    key: '_drawLabel',
+    value: function _drawLabel(offset, ctx, viaNode) {
+      // set style
+      var node1 = this.from;
+      var node2 = this.to;
+
+      if (this.labelModule.differentState(this.selected, this.hover)) {
+        this.labelModule.getTextSize(ctx, this.selected, this.hover);
+      }
+
+      if (node1.id != node2.id) {
+        this.labelModule.pointToSelf = false;
+        var point = this.edgeType.getPoint(offset, viaNode);
+        ctx.save();
+
+        var rotationPoint = this._getRotation(ctx);
+        if (rotationPoint.angle != 0) {
+          ctx.translate(rotationPoint.x, rotationPoint.y);
+          ctx.rotate(rotationPoint.angle);
+        }
+
+        // draw the label
+        this.labelModule.draw(ctx, point.x, point.y, this.selected, this.hover);
+
+        /*
+                // Useful debug code: draw a border around the label
+                // This should **not** be enabled in production!
+                var size = this.labelModule.getSize();; // ;; intentional so lint catches it
+                ctx.strokeStyle = "#ff0000";
+                ctx.strokeRect(size.left, size.top, size.width, size.height);
+                // End  debug code
+        */
+
+        ctx.restore();
       }
     }
 
@@ -15096,6 +15119,20 @@ var Edge = function () {
         parentOptions.label = newOptions.label;
       } else {
         parentOptions.label = undefined;
+      }
+
+      // Only copy labelFrom if it's a legal value.
+      if (ComponentUtil.isValidLabel(newOptions.labelFrom)) {
+        parentOptions.labelFrom = newOptions.labelFrom;
+      } else {
+        parentOptions.labelFrom = undefined;
+      }
+
+      // Only copy labelTo if it's a legal value.
+      if (ComponentUtil.isValidLabel(newOptions.labelTo)) {
+        parentOptions.labelTo = newOptions.labelTo;
+      } else {
+        parentOptions.labelTo = undefined;
       }
 
       util.mergeOptions(parentOptions, newOptions, 'smooth', globalOptions);
@@ -47701,6 +47738,8 @@ var EdgesHandler = function () {
       hidden: false,
       hoverWidth: 1.5,
       label: undefined,
+      //labelFrom: undefined,
+      //labelTo: undefined,
       labelHighlightBold: true,
       length: undefined,
       physics: true,
