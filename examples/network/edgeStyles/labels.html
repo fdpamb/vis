@@ -48,7 +48,13 @@
     nodes: nodes,
     edges: edges
   };
-  var options = {};
+  var options = {
+    physics: {
+      barnesHut: {
+        springLength: 200
+      }
+    }
+  };
   var network = new vis.Network(container, data, options);
 </script>
 
