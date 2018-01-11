@@ -5,7 +5,7 @@
  * A dynamic, browser-based visualization library.
  *
  * @version 4.21.0-SNAPSHOT
- * @date    2018-01-08
+ * @date    2018-01-11
  *
  * @license
  * Copyright (C) 2011-2017 Almende B.V, http://almende.com
@@ -14854,27 +14854,13 @@ var Edge = function () {
     value: function drawLabel(ctx, viaNode) {
       if (this.options.label !== undefined) {
         this._drawLabel(0.5, ctx, viaNode);
-      } else {
-        // Ignore the orientations.
-        this.labelModule.pointToSelf = true;
-        var x, y;
-        var radius = this.options.selfReferenceSize;
-        if (node1.shape.width > node1.shape.height) {
-          x = node1.x + node1.shape.width * 0.5;
-          y = node1.y - radius;
-        } else {
-          x = node1.x + radius;
-          y = node1.y - node1.shape.height * 0.5;
-        }
-        point = this._pointOnCircle(x, y, radius, 0.125);
-        this.labelModule.draw(ctx, point.x, point.y, this.selected, this.hover);
       }
 
       if (this.options.labelFrom !== undefined) {
         var saved = this.options.label;
         this.options.label = this.options.labelFrom;
         this.updateLabelModule();
-        this._drawLabel(0.2, ctx, viaNode);
+        this._drawLabel(0.2, ctx, viaNode); // TODO Adjust offset based on node & label sizes
         this.options.label = saved;
         this.updateLabelModule();
       }
@@ -14883,7 +14869,7 @@ var Edge = function () {
         var saved = this.options.label;
         this.options.label = this.options.labelTo;
         this.updateLabelModule();
-        this._drawLabel(0.8, ctx, viaNode);
+        this._drawLabel(0.8, ctx, viaNode); // TODO Adjust offset based on node & label sizes
         this.options.label = saved;
         this.updateLabelModule();
       }
@@ -14923,14 +14909,27 @@ var Edge = function () {
         */
 
         ctx.restore();
+      } else {
+        // Ignore the orientations.
+        this.labelModule.pointToSelf = true;
+        var x, y;
+        var radius = this.options.selfReferenceSize;
+        if (node1.shape.width > node1.shape.height) {
+          x = node1.x + node1.shape.width * 0.5;
+          y = node1.y - radius;
+        } else {
+          x = node1.x + radius;
+          y = node1.y - node1.shape.height * 0.5;
+        }
+        var pct = offset < 0.5 ? 0.125 * 4 : offset > 0.5 ? 0.125 * 7 : 0.125;
+        point = this._pointOnCircle(x, y, radius, pct);
+        this.labelModule.draw(ctx, point.x, point.y, this.selected, this.hover);
       }
     }
 
     /**
      * Determine all visual elements of this edge instance, in which the given
      * point falls within the bounding shape.
-     *
-     * @param {point} point
      * @returns {Array.<edgeClickItem|edgeLabelClickItem>} list with the items which are on the point
      */
 
@@ -47738,8 +47737,6 @@ var EdgesHandler = function () {
       hidden: false,
       hoverWidth: 1.5,
       label: undefined,
-      //labelFrom: undefined,
-      //labelTo: undefined,
       labelHighlightBold: true,
       length: undefined,
       physics: true,
